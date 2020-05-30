@@ -1617,18 +1617,18 @@ func TestReadEvent(t *testing.T) {
 	err = uapi.GetLineEvent(f.Fd(), &er)
 	require.Nil(t, err)
 
-	evt, err := readEventTimeout(uintptr(er.Fd), spuriousEventWaitTimeout)
+	evt, err := readEventTimeout(er.Fd, spuriousEventWaitTimeout)
 	assert.Nil(t, err)
 	assert.Nil(t, evt, "spurious event")
 
 	c.SetValue(1, 1)
-	evt, err = readEventTimeout(uintptr(er.Fd), eventWaitTimeout)
+	evt, err = readEventTimeout(er.Fd, eventWaitTimeout)
 	require.Nil(t, err)
 	require.NotNil(t, evt)
 	assert.Equal(t, uint32(2), evt.ID) // returns falling edge
 
 	c.SetValue(1, 0)
-	evt, err = readEventTimeout(uintptr(er.Fd), eventWaitTimeout)
+	evt, err = readEventTimeout(er.Fd, eventWaitTimeout)
 	assert.Nil(t, err)
 	require.NotNil(t, evt)
 	assert.Equal(t, uint32(1), evt.ID) // returns rising edge
@@ -1636,13 +1636,13 @@ func TestReadEvent(t *testing.T) {
 	unix.Close(int(er.Fd))
 }
 
-func readEventTimeout(fd uintptr, t time.Duration) (*uapi.EventData, error) {
+func readEventTimeout(fd int32, t time.Duration) (*uapi.EventData, error) {
 	pollfd := unix.PollFd{Fd: int32(fd), Events: unix.POLLIN}
 	n, err := unix.Poll([]unix.PollFd{pollfd}, int(t.Milliseconds()))
 	if err != nil || n != 1 {
 		return nil, err
 	}
-	evt, err := uapi.ReadEvent(fd)
+	evt, err := uapi.ReadEvent(uintptr(fd))
 	if err != nil {
 		return nil, err
 	}
